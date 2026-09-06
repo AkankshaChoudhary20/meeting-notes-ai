@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Voice Meeting Assistant</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1e222b;
+    --border: #2a2f3a;
+    --text: #e6e8ec;
+    --muted: #9aa1ad;
+    --accent: #6c8cff;
+    --accent-2: #7ee0b8;
+    --danger: #ff6c6c;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 {
+    font-size: 18px;
+    margin: 0;
+    font-weight: 600;
+  }
+  header .subtitle {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 2px;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    min-height: calc(100vh - 73px);
+  }
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .panel h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin: 0 0 12px;
+  }
+  input[type="text"] {
+    width: 100%;
+    padding: 9px 10px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  input[type="file"] {
+    width: 100%;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 9px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  button.secondary {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .upload-status {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    min-height: 16px;
+  }
+  .upload-status.error { color: var(--danger); }
+  .upload-status.ok { color: var(--accent-2); }
+
+  .meeting-list { list-style: none; margin: 0; padding: 0; }
+  .meeting-item {
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    margin-bottom: 4px;
+  }
+  .meeting-item:hover { background: var(--panel-2); }
+  .meeting-item.active {
+    background: var(--panel-2);
+    border-color: var(--accent);
+  }
+  .meeting-item .title {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .meeting-item .meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .badge {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 100px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .badge.processing { background: #3a3520; color: #e6c34a; }
+  .badge.done { background: #17301f; color: var(--accent-2); }
+  .badge.failed { background: #3a1f22; color: var(--danger); }
+
+  .main {
+    padding: 28px 36px;
+    overflow-y: auto;
+  }
+  .empty-state {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 60px;
+    text-align: center;
+  }
+  .detail-header h2 {
+    margin: 0 0 4px;
+    font-size: 20px;
+  }
+  .detail-header .meta {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .section {
+    margin-bottom: 28px;
+  }
+  .section h3 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin: 0 0 10px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+  .action-items { list-style: none; margin: 0; padding: 0; }
+  .action-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+  .action-item input[type="checkbox"] {
+    margin-top: 3px;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .action-item .desc {
+    flex: 1;
+    font-size: 14px;
+  }
+  .action-item.done .desc {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+  .action-item .owner {
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--panel-2);
+    padding: 2px 8px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+  .owner-input {
+    font-size: 12px;
+    width: 110px;
+    padding: 4px 6px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+  }
+  .transcript-toggle {
+    font-size: 12px;
+    color: var(--accent);
+    cursor: pointer;
+    margin-bottom: 8px;
+    display: inline-block;
+  }
+  .spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--muted);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Voice Meeting Assistant</h1>
+    <div class="subtitle">Local transcription + Claude-generated summaries and action items</div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="panel">
+      <h2>Upload a meeting</h2>
+      <form id="upload-form">
+        <input type="text" id="title-input" placeholder="Meeting title (optional)" />
+        <input type="file" id="file-input" accept="audio/*,.mp3,.wav,.m4a,.flac,.ogg,.webm,.mp4" required />
+        <button type="submit" id="upload-btn">Upload &amp; process</button>
+      </form>
+      <div class="upload-status" id="upload-status"></div>
+    </div>
+
+    <div class="panel" style="flex:1;">
+      <h2>Meetings</h2>
+      <ul class="meeting-list" id="meeting-list">
+        <li class="empty-state" style="margin-top:12px; font-size:12px;">No meetings yet</li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="main" id="main-panel">
+    <div class="empty-state">Select a meeting on the left, or upload a new recording to get started.</div>
+  </main>
+</div>
+
+<script>
+const API_BASE = "";
+let meetings = [];
+let selectedId = null;
+let pollTimer = null;
+
+const el = (sel) => document.querySelector(sel);
+const meetingListEl = el("#meeting-list");
+const mainPanel = el("#main-panel");
+const uploadForm = el("#upload-form");
+const uploadStatus = el("#upload-status");
+const uploadBtn = el("#upload-btn");
+
+async function api(path, options = {}) {
+  const res = await fetch(API_BASE + path, options);
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const body = await res.json();
+      detail = body.detail || detail;
+    } catch (e) {}
+    throw new Error(detail);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function renderMeetingList() {
+  if (meetings.length === 0) {
+    meetingListEl.innerHTML = '<li class="empty-state" style="margin-top:12px; font-size:12px;">No meetings yet</li>';
+    return;
+  }
+  meetingListEl.innerHTML = meetings.map((m) => `
+    <li class="meeting-item ${m.id === selectedId ? "active" : ""}" data-id="${m.id}">
+      <div class="title">${escapeHtml(m.title)}</div>
+      <div class="meta">
+        <span>${fmtDate(m.created_at)}</span>
+        <span class="badge ${m.status}">${m.status === "processing" ? "<span class=\"spinner\"></span>processing" : m.status}</span>
+      </div>
+    </li>
+  `).join("");
+
+  meetingListEl.querySelectorAll(".meeting-item").forEach((item) => {
+    item.addEventListener("click", () => selectMeeting(parseInt(item.dataset.id, 10)));
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+
+async function loadMeetings() {
+  try {
+    meetings = await api("/meetings");
+    renderMeetingList();
+
+    // If any meeting is still processing, keep polling the list.
+    const anyProcessing = meetings.some((m) => m.status === "processing");
+    if (anyProcessing && !pollTimer) {
+      pollTimer = setInterval(async () => {
+        await loadMeetings();
+        if (selectedId !== null) {
+          const current = meetings.find((m) => m.id === selectedId);
+          if (current && current.status !== "processing") {
+            await selectMeeting(selectedId, { silent: true });
+          }
+        }
+      }, 3000);
+    } else if (!anyProcessing && pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  } catch (e) {
+    mainPanel.innerHTML = `<div class="empty-state">Could not reach the API: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function selectMeeting(id, opts = {}) {
+  selectedId = id;
+  renderMeetingList();
+  if (!opts.silent) {
+    mainPanel.innerHTML = '<div class="empty-state">Loading…</div>';
+  }
+  try {
+    const meeting = await api(`/meetings/${id}`);
+    renderMeetingDetail(meeting);
+  } catch (e) {
+    mainPanel.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderMeetingDetail(meeting) {
+  const statusBadge = `<span class="badge ${meeting.status}">${meeting.status}</span>`;
+
+  let body = `
+    <div class="detail-header">
+      <h2>${escapeHtml(meeting.title)}</h2>
+      <div class="meta">${fmtDate(meeting.created_at)} &middot; ${statusBadge}</div>
+    </div>
+  `;
+
+  if (meeting.status === "processing") {
+    body += `<div class="card"><span class="spinner"></span> Transcribing and summarizing… this page will update automatically.</div>`;
+  } else if (meeting.status === "failed") {
+    body += `<div class="section"><h3>Error</h3><div class="card">${escapeHtml(meeting.summary || "Processing failed.")}</div></div>`;
+  } else {
+    body += `
+      <div class="section">
+        <h3>Summary</h3>
+        <div class="card">${escapeHtml(meeting.summary || "(no summary)")}</div>
+      </div>
+      <div class="section">
+        <h3>Action items</h3>
+        <ul class="action-items" id="action-items-list">
+          ${meeting.action_items.length === 0
+            ? '<div class="empty-state" style="text-align:left; margin:0; font-size:13px;">No action items detected.</div>'
+            : meeting.action_items.map(renderActionItem).join("")}
+        </ul>
+      </div>
+    `;
+  }
+
+  body += `
+    <div class="section">
+      <span class="transcript-toggle" id="transcript-toggle">Show full transcript ▾</span>
+      <div class="card" id="transcript-box" style="display:none;">${escapeHtml(meeting.transcript || "(no transcript)")}</div>
+    </div>
+  `;
+
+  mainPanel.innerHTML = body;
+
+  const toggle = el("#transcript-toggle");
+  if (toggle) {
+    toggle.addEventListener("click", () => {
+      const box = el("#transcript-box");
+      const showing = box.style.display !== "none";
+      box.style.display = showing ? "none" : "block";
+      toggle.textContent = showing ? "Show full transcript ▾" : "Hide full transcript ▴";
+    });
+  }
+
+  meeting.action_items.forEach((item) => {
+    const checkbox = document.querySelector(`#ai-done-${item.id}`);
+    if (checkbox) {
+      checkbox.addEventListener("change", () => patchActionItem(item.id, { done: checkbox.checked }));
+    }
+    const ownerInput = document.querySelector(`#ai-owner-${item.id}`);
+    if (ownerInput) {
+      ownerInput.addEventListener("change", () => patchActionItem(item.id, { owner: ownerInput.value }));
+    }
+  });
+}
+
+function renderActionItem(item) {
+  return `
+    <li class="action-item ${item.done ? "done" : ""}" id="ai-row-${item.id}">
+      <input type="checkbox" id="ai-done-${item.id}" ${item.done ? "checked" : ""} />
+      <div class="desc">${escapeHtml(item.description)}</div>
+      <input type="text" class="owner-input" id="ai-owner-${item.id}" placeholder="owner" value="${escapeHtml(item.owner || "")}" />
+    </li>
+  `;
+}
+
+async function patchActionItem(id, fields) {
+  try {
+    await api(`/action_items/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
+    });
+    const row = el(`#ai-row-${id}`);
+    if (row && "done" in fields) {
+      row.classList.toggle("done", fields.done);
+    }
+  } catch (e) {
+    alert("Failed to update action item: " + e.message);
+  }
+}
+
+uploadForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fileInput = el("#file-input");
+  const titleInput = el("#title-input");
+  if (!fileInput.files.length) return;
+
+  const formData = new FormData();
+  formData.append("file", fileInput.files[0]);
+  if (titleInput.value.trim()) {
+    formData.append("title", titleInput.value.trim());
+  }
+
+  uploadBtn.disabled = true;
+  uploadStatus.className = "upload-status";
+  uploadStatus.textContent = "Uploading…";
+
+  try {
+    const result = await api("/meetings", { method: "POST", body: formData });
+    uploadStatus.className = "upload-status ok";
+    uploadStatus.textContent = `Uploaded — meeting #${result.id} is processing.`;
+    uploadForm.reset();
+    await loadMeetings();
+    await selectMeeting(result.id);
+  } catch (err) {
+    uploadStatus.className = "upload-status error";
+    uploadStatus.textContent = "Upload failed: " + err.message;
+  } finally {
+    uploadBtn.disabled = false;
+  }
+});
+
+loadMeetings();
+</script>
+
+</body>
+</html>

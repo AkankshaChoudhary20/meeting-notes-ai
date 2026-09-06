@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: voice-meeting-assistant-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: voiceapp
+      POSTGRES_PASSWORD: voiceapp
+      POSTGRES_DB: voice_meeting_assistant
+    ports:
+      # Override the host port with POSTGRES_PORT if 5432 is already taken
+      # on your machine, e.g. `POSTGRES_PORT=5433 docker compose up -d`.
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voiceapp -d voice_meeting_assistant"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:

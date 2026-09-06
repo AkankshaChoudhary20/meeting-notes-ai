@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+
+# Environment
+.env
+
+# Uploaded audio + local Postgres data
+uploads/*
+!uploads/.gitkeep
+pgdata/
+
+# OS / editor cruft
+.DS_Store
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# faster-whisper / huggingface cache (if pointed at project dir)
+.cache/
