@@ -136,7 +136,7 @@ async def create_meeting(
             detail=f"Unsupported file extension '{ext}'. Allowed: {sorted(ALLOWED_EXTENSIONS)}",
         )
 
-    contents = await file.read()
+    contents = await file.read(MAX_UPLOAD_BYTES + 1)
     if not contents:
         raise HTTPException(status_code=400, detail="Uploaded file is empty")
     if len(contents) > MAX_UPLOAD_BYTES:
@@ -162,6 +162,10 @@ async def create_meeting(
                 )
                 meeting_id = cur.fetchone()[0]
     except Exception as exc:  # noqa: BLE001
+        try:
+            dest_path.unlink(missing_ok=True)
+        except OSError:
+            logger.exception("Failed to remove unregistered meeting upload %s", dest_path)
         raise HTTPException(status_code=503, detail=f"Database unavailable: {exc}") from exc
 
     background_tasks.add_task(_process_meeting, meeting_id, str(dest_path))
