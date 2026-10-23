@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class ActionItemOut(BaseModel):
@@ -18,6 +18,15 @@ class ActionItemUpdate(BaseModel):
     done: Optional[bool] = None
     owner: Optional[str] = None
     description: Optional[str] = None
+
+    @field_validator("done", "description")
+    @classmethod
+    def reject_explicit_null(cls, value):
+        # Omission leaves a PATCH field unchanged; explicit null would violate
+        # the database's NOT NULL constraints. The owner remains nullable.
+        if value is None:
+            raise ValueError("This field cannot be null; omit it to leave it unchanged.")
+        return value
 
 
 class MeetingListItem(BaseModel):
